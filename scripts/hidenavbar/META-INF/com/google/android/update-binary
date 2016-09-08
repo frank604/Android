@@ -1,0 +1,58 @@
+#!/sbin/sh
+#WETA system files
+
+mount /system
+
+OUTFD=/proc/self/fd/$2;
+ZIPFILE="$3";
+DIR=$(dirname "$ZIPFILE");
+ZIP=$3
+WETA=/tmp/zip
+SYS=/system
+ADDON=/system/addon.d
+APP=/system/app
+VIPER=/system/lib/soundfx/libv4a_fx_ics.so
+PAPP=/system/priv-app
+BP=/system/build.prop
+SUD=/system/su.d
+FRES=/system/framework/framework-res.apk
+API=$(cat /system/build.prop | grep "ro.build.version.sdk=" | dd bs=1 skip=21 count=2)
+SPR=set_perm_recursive
+SP=set_perm
+
+ui_print() { echo -e "ui_print $1\nui_print" > $OUTFD; }
+
+abort() { ui_print "$*"; exit 1; }
+
+set_perm_recursive() {
+  uid=$1; gid=$2; dmod=$3; fmod=$4;
+  shift 4;
+  until [ ! "$1" ]; do
+    chown -R $uid.$gid $1; chown -R $uid:$gid $1;
+    find "$1" -type d -exec chmod $dmod {} +;
+    find "$1" -type f -exec chmod $fmod {} +;
+    shift;
+  done;
+}
+
+if [ $API -lt 23 ]; then
+  ui_print "Marshmallow or Nougat is required!"
+  umount /system
+  abort
+  exit 1
+fi
+######
+
+mkdir $WETA
+cd $WETA
+unzip -o "$ZIP"
+
+echo "qemu.hw.mainkeys=1" >> /system/build.prop
+
+uiprint "WETA fix installed"
+
+rm -rf $WETA
+
+umount $SYS
+
+exit 0
